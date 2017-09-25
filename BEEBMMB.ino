@@ -5,7 +5,7 @@ void mmbFileList()
  String JSON="[";
  String FileName="";
  Serial.println("MMBData");
- hostSelect(ESP);
+ hostSelect(ESP8266);
  File dir=SD.open("/");
  dir.rewindDirectory();
  while(true){
@@ -44,7 +44,7 @@ void ssdData()
     handleNotFound();
     return;
   }
-  hostSelect(ESP);
+  hostSelect(ESP8266);
   sdFile=SD.open(MMBFile,FILE_READ);
   //TODO check for file open error
   CurrentMMB=MMBFile;
@@ -74,14 +74,14 @@ void ssdData()
 void updateMMBTitle(){
   Serial.println("Update MMB Title");
   Serial.println(NextFree);
-  Serial.println((NextFree*204800)+8192);
+  Serial.println((NextFree*SSDSIZE)+8192);
   char DiskTitle1[8];
   char DiskTitle2[4];
-  hostSelect(ESP);
+  hostSelect(ESP8266);
   sdFile=SD.open(CurrentMMB,FILE_READ);
-  sdFile.seek((NextFree*204800)+8192);
+  sdFile.seek((NextFree*SSDSIZE)+8192);
   sdFile.read(DiskTitle1,8);
-  sdFile.seek((NextFree*204800)+8448);
+  sdFile.seek((NextFree*SSDSIZE)+8448);
   sdFile.read(DiskTitle2,4);
   sdFile.close();
   sdFile=SD.open(CurrentMMB,FILE_WRITE);
@@ -99,7 +99,7 @@ void checkNextFree()
   int pos=16;
   char buf[16];
   NextFree=511;
-  hostSelect(ESP);
+  hostSelect(ESP8266);
   sdFile=SD.open(CurrentMMB,FILE_READ);
   for(int count1=0;count1<510;count1++){
     sdFile.seek(pos);
@@ -114,5 +114,22 @@ void checkNextFree()
   hostSelect(BBC);
   Serial.print("Next Free ssd: ");
   Serial.println(NextFree);
+}
+
+String GetTitle(int ssdnum)
+{
+  char DiskTitle1[8];
+  char DiskTitle2[4];
+  hostSelect(ESP8266);
+  sdFile=SD.open(CurrentMMB,FILE_READ);
+  sdFile.seek((ssdnum*SSDSIZE)+8192);
+  sdFile.read(DiskTitle1,8);
+  sdFile.seek((ssdnum*SSDSIZE)+8448);
+  sdFile.read(DiskTitle2,4);
+  sdFile.close();
+  hostSelect(BBC);
+  String Title=String(DiskTitle1)+String(DiskTitle2);
+  Title.trim();
+  return Title;
 }
 
