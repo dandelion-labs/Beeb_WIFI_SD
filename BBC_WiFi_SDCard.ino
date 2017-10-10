@@ -18,8 +18,8 @@
 #define SSDSIZE 204800
 
 char ssid[33];
-char password[50];
-char upurl[200];
+char password[51];
+char upurl[201];
 char hname[12];
 byte mac[6];
 ESP8266WebServer server (80);

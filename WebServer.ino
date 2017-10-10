@@ -18,9 +18,9 @@ void serverStart(){
   });
   server.on ("/mmbdata", mmbFileList);
   server.on ("/ssddata", ssdData);
-  server.on ("/setconfig", updateSettings);
+  server.on ("/saveconfig", updateSettings);
   server.on ("/getconfig",getSettings);
-  server.on("/update",httpUpdate);
+  server.on("/fwupdate",httpUpdate);
   server.on("/download",ssdDownload);
   
  
@@ -140,13 +140,24 @@ void handleFileUpload(){ // upload a new file to the SPIFFS
 void updateSettings() //ssid,pswd etc.
 {
   //TODO
+  
   if(server.args()){
     for(int count=0;count<server.args();count++){
       if(server.argName(count)=="ssid"){
-        
+        server.arg(count).toCharArray(ssid,32);
+      }
+      if(server.argName(count)=="server"){
+        server.arg(count).toCharArray(upurl,200);
+      }
+      if(server.argName(count)=="pswd"){
+        server.arg(count).toCharArray(password,50);
       }
       
     }
+    saveCredentials();
+    //delay(100);
+    //ESP.restart();
+    server.send(200,"text/plain","OK");
   }
   
 }
@@ -160,33 +171,47 @@ void getSettings()
   server.send(200,"text/plain",JSON);
 }
 
-void httpUpdate()//Update code & spiffs
+void httpUpdate()//Update firmare code & spiffs
 {
-  //TODO serve update page with timeout to load index.htm 
-  handleNotFound();
-  
-  server.stop();
-  delay(10);
+  //TODO write update status to file in spiffs
+  //Do timed reload of index page
+  server.send(200,"text/plain","Update Started....");
+  server.stop();//Must halt server to do update.
+  delay(50);
   ESPhttpUpdate.rebootOnUpdate(false);
   Serial.println("Update SPIFFS...");
-  t_httpUpdate_return ret = ESPhttpUpdate.updateSpiffs(String(upurl)+"BBC_WiFi_SDCard.spiffs.bin");
-  if(ret == HTTP_UPDATE_OK) {
-    Serial.println("Update sketch...");
-    ret = ESPhttpUpdate.update(String(upurl)+"BBC_WiFi_SDCard.ino.bin");
-    switch(ret) {
+  t_httpUpdate_return ret = ESPhttpUpdate.updateSpiffs(String(upurl)+"/BBC_WiFi_SDCard.spiffs.bin");
+  //Serial.println(String(upurl)+"BBC_WiFi_SDCard.spiffs.bin");
+  switch(ret) {
       case HTTP_UPDATE_FAILED:
-        Serial.printf("HTTP_UPDATE_FAILD Error (%d): %s", ESPhttpUpdate.getLastError(), ESPhttpUpdate.getLastErrorString().c_str());
+        Serial.println("HTTP_UPDATE_FAILED");
         break;
       case HTTP_UPDATE_NO_UPDATES:
         Serial.println("HTTP_UPDATE_NO_UPDATES");
         break;
       case HTTP_UPDATE_OK:
         Serial.println("HTTP_UPDATE_OK");
-        delay(50);
-        ESP.restart();
+        //delay(50);
+        //ESP.restart();
         break;
-    }
   }
+  Serial.println("Update Sketch...");
+  ret = ESPhttpUpdate.update(String(upurl)+"/BBC_WiFi_SDCard.ino.bin");
+  switch(ret) {
+      case HTTP_UPDATE_FAILED:
+        Serial.println("HTTP_UPDATE_FAILED");
+        break;
+      case HTTP_UPDATE_NO_UPDATES:
+        Serial.println("HTTP_UPDATE_NO_UPDATES");
+        break;
+      case HTTP_UPDATE_OK:
+        Serial.println("HTTP_UPDATE_OK");
+        //delay(50);
+        //ESP.restart();
+        break;
+  }
+  server.begin();
+ 
 }
 
 void ssdDownload()
